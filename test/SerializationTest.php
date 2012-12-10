@@ -3,6 +3,8 @@ include 'helpers/config.php';
 require '../lib/Serialization.php';
 require '../lib/ArraySerializer.php';
 require '../lib/JsonSerializer.php';
+require '../lib/XmlSerializer.php';
+require '../lib/CsvSerializer.php';
 
 use ActiveRecord\DateTime;
 
