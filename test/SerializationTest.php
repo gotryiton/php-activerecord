@@ -1,6 +1,8 @@
 <?php
 include 'helpers/config.php';
 require '../lib/Serialization.php';
+require '../lib/ArraySerializer.php';
+require '../lib/JsonSerializer.php';
 
 use ActiveRecord\DateTime;
 
