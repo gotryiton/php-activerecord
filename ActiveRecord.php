@@ -29,6 +29,7 @@ require 'lib/HasManyThroughAssociationException.php';
 require 'lib/ModelException.php';
 require 'lib/ReadOnlyException.php';
 require 'lib/RecordNotFound.php';
+require 'lib/RelationshipException.php';
 require 'lib/UndefinedPropertyException.php';
 require 'lib/ValidationsArgumentError.php';
 require 'lib/Cache.php';
