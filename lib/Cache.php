@@ -34,15 +34,23 @@ class Cache
 	 *
 	 * (Note: expiring needs to be implemented in your cache store.)
 	 *
-	 * @param string $url URL to your cache server
+	 * @param string Or array $servers
 	 * @param array $options Specify additional options
 	 */
-	public static function initialize($url, $options=array())
+	public static function initialize($servers, $options=array('type' => 'memcached'))
 	{
-		if ($url)
+	    if(!array_key_exists('type',$options))
+	        $options['type'] = 'memcached';
+        if(is_array($servers)){
+            $file = ucwords($options['type']);
+			$class = "ActiveRecord\\$file";
+			require_once __DIR__ . "/cache/$file.php";
+			static::$adapter = new $class(array('servers' => $servers));
+        }
+		else if ($servers)
 		{
-			$url = parse_url($url);
-			$file = ucwords(Inflector::instance()->camelize($url['scheme']));
+			$url = parse_url($servers);
+            $file = ucwords($options['type']);
 			$class = "ActiveRecord\\$file";
 			require_once __DIR__ . "/cache/$file.php";
 			static::$adapter = new $class($url);
@@ -59,22 +67,84 @@ class Cache
 			static::$adapter->flush();
 	}
 
-	public static function get($key, $closure)
+	public static function get($key, $closure, $ttl = null)
 	{
 		$key = static::get_namespace() . $key;
 		
 		if (!static::$adapter)
 			return $closure();
 
-		if (!($value = static::$adapter->read($key)))
-			static::$adapter->write($key,($value = $closure()),static::$options['expire']);
-
+		if (!($value = static::$adapter->read($key)) && static::$adapter->res_notfound()){
+            $expire = (!is_null($ttl)) ? $ttl : static::$options['expire'];
+			static::$adapter->write($key,($value = $closure()), $expire);
+		}
+		
 		return $value;
 	}
 
-	private static function get_namespace()
+    public static function fetch($key)
+	{   
+	    if (!static::$adapter)
+	        return false;
+		$key = static::get_namespace() . $key;
+		return static::$adapter->read($key);
+	}
+	
+	public static function set($key,$value,$expire = null)
+	{
+	    if (!static::$adapter)
+	        return false;
+	        
+	    $key = static::get_namespace() . $key;
+
+        $expire = (!is_null($expire)) ? $expire : static::$options['expire'];
+	    static::$adapter->write($key,$value,$expire);
+	}
+	
+	public static function delete($key)
+	{
+	    if (!static::$adapter)
+	        return false;
+	        
+	    $key = static::get_namespace() . $key;
+	    
+	    return static::$adapter->delete($key);
+	}
+
+	public static function multi_set($list,$expire = null)
+	{
+	    if (!static::$adapter)
+	        return false;
+
+        foreach ($list as $k => $value) {
+           unset ($list[$k]);
+
+           $key = static::get_namespace() . $k;
+
+           $list[$key] = $value;
+        }
+
+	    return static::$adapter->multi_set($list,$expire);
+	}
+
+	protected static function get_namespace()
 	{
 		return (isset(static::$options['namespace']) && strlen(static::$options['namespace']) > 0) ? (static::$options['namespace'] . "::") : "";
+	}
+
+	public static function multi_get($list)
+	{
+	    if (!static::$adapter)
+	        return false;
+
+        $namespaced_list = array();
+        foreach ($list as $key) {
+           unset ($list[$key]);
+           $key = static::get_namespace() . $key;
+           $namespaced_list[]= $key;
+        }
+
+	    return static::$adapter->multi_get($namespaced_list);
 	}
 }
 ?>
