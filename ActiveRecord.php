@@ -18,9 +18,24 @@ require 'lib/Connection.php';
 require 'lib/SQLBuilder.php';
 require 'lib/Reflections.php';
 require 'lib/Inflector.php';
+require 'lib/StandardInflector.php';
 require 'lib/CallBack.php';
-require 'lib/Exceptions.php';
+require 'lib/ActiveRecordException.php';
+require 'lib/ConfigException.php';
+require 'lib/DatabaseException.php';
+require 'lib/ExpressionsException.php';
+require 'lib/HasManyThroughAssociationException.php';
+require 'lib/ModelException.php';
+require 'lib/ReadOnlyException.php';
+require 'lib/RecordNotFound.php';
+require 'lib/UndefinedPropertyException.php';
+require 'lib/ValidationsArgumentError.php';
 require 'lib/Cache.php';
+require 'lib/InterfaceRelationship.php';
+require 'lib/AbstractRelationship.php';
+require 'lib/HasAndBelongsToMany.php';
+require 'lib/HasMany.php';
+require 'lib/HasOne.php';
 
 if (!defined('PHP_ACTIVERECORD_AUTOLOAD_DISABLE'))
 	spl_autoload_register('activerecord_autoload',false,PHP_ACTIVERECORD_AUTOLOAD_PREPEND);
