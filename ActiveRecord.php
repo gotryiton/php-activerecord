@@ -12,6 +12,7 @@ require 'lib/Config.php';
 require 'lib/Utils.php';
 require 'lib/DateTime.php';
 require 'lib/Model.php';
+require 'lib/Errors.php';
 require 'lib/Table.php';
 require 'lib/ConnectionManager.php';
 require 'lib/Connection.php';
@@ -36,6 +37,7 @@ require 'lib/AbstractRelationship.php';
 require 'lib/HasAndBelongsToMany.php';
 require 'lib/HasMany.php';
 require 'lib/HasOne.php';
+require 'lib/BelongsTo.php';
 
 if (!defined('PHP_ACTIVERECORD_AUTOLOAD_DISABLE'))
 	spl_autoload_register('activerecord_autoload',false,PHP_ACTIVERECORD_AUTOLOAD_PREPEND);
