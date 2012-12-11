@@ -175,7 +175,7 @@ class HasMany extends AbstractRelationship
 	public function load_eagerly($models=array(), $attributes=array(), $includes, Table $table)
 	{
 		$this->set_keys($table->class->name);
-		$this->query_and_attach_related_models_eagerly($table,$models,$attributes,$includes,$this->foreign_key, $table->pk);
+		$this->query_and_attach_related_models_eagerly($table,$models,$attributes,$includes,$this->foreign_key, $table->pk, $this->primary_key);
 	}
 };
 

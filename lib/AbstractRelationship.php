@@ -52,7 +52,7 @@ abstract class AbstractRelationship implements InterfaceRelationship
 	 *
 	 * @var array
 	 */
-	static protected $valid_association_options = array('class_name', 'class', 'foreign_key', 'conditions', 'select', 'readonly', 'namespace');
+	static protected $valid_association_options = array('class_name', 'class', 'foreign_key', 'conditions', 'select', 'readonly', 'namespace', 'touch');
 
 	/**
 	 * Constructs a relationship.
@@ -114,12 +114,17 @@ abstract class AbstractRelationship implements InterfaceRelationship
 	 * @param $model_values_keys -> key(s)/value(s) to be used in query from model which is including
 	 * @return void
 	 */
-	protected function query_and_attach_related_models_eagerly(Table $table, $models, $attributes, $includes=array(), $query_keys=array(), $model_values_keys=array())
+	protected function query_and_attach_related_models_eagerly(Table $table, $models, $attributes, $includes=array(), $query_keys=array(), $model_values_keys=array(), $related_primary_keys = array())
 	{
 		$values = array();
 		$options = $this->options;
 		$inflector = Inflector::instance();
 		$query_key = $query_keys[0];
+		if(!empty($related_primary_keys))
+		    $related_primary_key = $related_primary_keys[0];
+		else
+		    $related_primary_key = null;
+
 		$model_values_key = $model_values_keys[0];
 
 		foreach ($attributes as $column => $value)
@@ -133,8 +138,22 @@ abstract class AbstractRelationship implements InterfaceRelationship
 		else
 			$options['conditions'] = $conditions;
 
-		if (!empty($includes))
+        $includes_belongs_to = false;
+		if (!empty($includes)){
 			$options['include'] = $includes;
+            if(is_array($includes) && ($key = array_search(strtolower(get_class($models[0])),$includes))){
+                $includes_belongs_to = true;
+                unset($includes[$key]);
+            }
+            else if(strtolower(get_class($models[0])) == $includes){
+                $includes_belongs_to = true;
+                $includes = NULL;
+            }
+            $options['include'] = $includes;
+        }
+        else{
+            $options['include'] = array();
+        }
 
 		if (!empty($options['through'])) {
 			// save old keys as we will be reseting them below for inner join convenience
@@ -373,6 +392,120 @@ abstract class AbstractRelationship implements InterfaceRelationship
 	 * @param Model $model The model this relationship belongs to
 	 */
 	abstract function load(Model $model);
+	/**
+	 * Creates a map of models grouped by an attribute
+	 *
+	 * @param string $attribute_name
+	 * @param string $models
+	 * @param string $child_attribute_name
+	 * @param string $child_primary_key
+	 * @param string $related_models
+	 * @return array
+	 */
+	public function map_models($attribute_name,$models,$child_attribute_name = null, $child_primary_key = null, $related_models = array())
+	{
+	    $output = array();
+	    if($this->is_poly()){
+	        $map = array();
+    	    foreach($related_models as $model)
+    	    {
+    	        $key = $model->read_attribute($child_primary_key);
+    	        $output[$key] = array();
+    	        $map[$model->read_attribute($child_attribute_name)][] = $key;
+    	    }
+    	    foreach($models as $model)
+    	    {
+                $key = $model->read_attribute($attribute_name);
+                if(array_key_exists($key,$map)){
+        	        $children = $map[$model->read_attribute($attribute_name)];
+        	        if(!empty($children))
+        	        {
+            	        foreach($children as $child_id)
+            	        {
+            	           $output[$child_id][]= $model;
+            	        }
+            	    }
+            	}
+    	    }
+    	}
+    	else{
+    	    foreach($models as $model)
+    	    {
+    	        $key = $model->read_attribute($attribute_name);
+    	        $output[$key][] = $model;
+    	    }
+    	}
+	    return $output;
+	}
+
+    /**
+     * Matches related models with the parent in an eager load
+     *
+     * @param array  $related_models
+     * @param array  $parents
+     * @param string $query_key
+     * @param string $model_values_key
+     * @param string $related_primary_key
+     * @param bool   $include_belongs_to
+     * @return void
+     */
+	public function match_related_models_to_parents($related_models,$parents,$query_key,$model_values_key,$related_primary_key,$include_belongs_to = false)
+	{
+	    $class = $this->class_name;
+
+	    $inflector = Inflector::instance();
+
+        if($this->is_poly())
+	        $parent_map = $this->map_models($model_values_key,$parents,$query_key,$related_primary_key,$related_models);
+	    else
+	        $parent_map = $this->map_models($model_values_key,$parents);
+
+        $records_by_parent = array();
+
+        foreach($parents as $parent)
+            $records_by_parent[$parent->read_attribute($parent->get_primary_key(true))] = array('parent' => $parent,'related' => array());
+
+        foreach($related_models as $related)
+        {
+            if($this->is_poly())
+                $map_key = $related_primary_key;
+            else
+                $map_key = $query_key;
+
+            $related_key = $related->read_attribute($map_key);
+
+            if(array_key_exists($related_key,$parent_map)){
+                foreach($parent_map[$related_key] as $parent_model)
+                    $records_by_parent[$parent_model->read_attribute($parent_model->get_primary_key(true))]['related'][]= $related;
+            }
+        }
+
+        $used_models = [];
+        foreach($records_by_parent as $record)
+        {
+            $parent = $record['parent'];
+            if(!empty($record['related'])) {
+                foreach($record['related'] as $related) {
+                    $hash = spl_object_hash($related);
+
+                    if (in_array($hash, $used_models)) {
+                        $parent->set_relationship_from_eager_load(clone($related), $this->attribute_name);
+                    }
+                    else {
+                        $parent->set_relationship_from_eager_load($related, $this->attribute_name);
+                        $used_models[] = $hash;
+                    }
+
+                    if($include_belongs_to){
+                        $related->set_relationship_from_eager_load(clone($parent), strtolower(get_class($parent)));
+                    }
+                }
+            }
+            else{
+                $parent->set_relationship_from_eager_load(null, $this->attribute_name);
+            }
+        }
+	}
 };
 
 ?>
