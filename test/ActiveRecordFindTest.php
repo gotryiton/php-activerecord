@@ -456,9 +456,9 @@ class ActiveRecordFindTest extends DatabaseTest
 		$arnow = new ActiveRecord\DateTime();
 		$arnow->setTimestamp($now->getTimestamp());
 
-		Author::find(1)->update_attribute('created_at',$now);
-		$this->assert_not_null(Author::find_by_created_at($now));
-		$this->assert_not_null(Author::find_by_created_at($arnow));
+		Author::find(1)->update_attribute('datetime_created_at',$now);
+        $this->assert_not_null(Author::find_by_datetime_created_at($now));
+        $this->assert_not_null(Author::find_by_datetime_created_at($arnow));
 	}
 };
 ?>

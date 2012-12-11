@@ -1145,12 +1145,12 @@ class Model
 	 */
 	public function set_timestamps()
 	{
-		$now = date('Y-m-d H:i:s');
+		$now = time();
 
 		if (isset($this->updated_at))
 			$this->updated_at = $now;
 
-		if (isset($this->created_at) && $this->is_new_record())
+		if (isset($this->created_at) && $this->created_at == 0 && $this->is_new_record())
 			$this->created_at = $now;
 	}
 
