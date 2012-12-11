@@ -94,6 +94,13 @@ class Model
 	 */
 	private $__dirty = null;
 
+    /**
+     * Flag whether or not this model's attributes have been modified after save since it will either be null or an array of column_names that have been modified
+     *
+     * @var array
+     */
+    private $__was_dirty = null;
+
 	/**
 	 * Flag that determines of this model can have a writer method invoked such as: save/update/insert/delete
 	 *
@@ -535,6 +542,20 @@ class Model
 	}
 
 	/**
+	 * Returns hash of attributes that were modified before save.
+	 *
+	 * @return mixed null if no dirty attributes otherwise returns array of dirty attributes.
+	 */
+	public function dirty_attributes_before_save()
+	{
+		if (!$this->__was_dirty)
+			return null;
+
+		$was_dirty = array_intersect_key($this->attributes,$this->__was_dirty);
+		return !empty($was_dirty) ? $was_dirty : null;
+	}
+
+	/**
 	 * Returns hash of attributes that have been modified since loading the model.
 	 *
 	 * @return mixed null if no dirty attributes otherwise returns array of dirty attributes.
@@ -549,13 +570,23 @@ class Model
 	}
 
 	/**
+	 * Check if a particular attribute was modified before save.
+	 * @param string $attribute	Name of the attribute
+	 * @return boolean TRUE if it has been modified.
+	 */
+	public function attribute_was_dirty($attribute)
+	{
+		return $this->__was_dirty && isset($this->__was_dirty[$attribute]) && $this->__was_dirty[$attribute] && array_key_exists($attribute, $this->attributes);
+	}
+
+	/**
 	 * Check if a particular attribute has been modified since loading the model.
 	 * @param string $attribute	Name of the attribute
 	 * @return boolean TRUE if it has been modified.
 	 */
 	public function attribute_is_dirty($attribute)
 	{
-		return $this->__dirty && $this->__dirty[$attribute] && array_key_exists($attribute, $this->attributes);
+		return $this->__dirty && isset($this->__dirty[$attribute]) && $this->__dirty[$attribute] && array_key_exists($attribute, $this->attributes);
 	}
 
 	/**
@@ -827,8 +858,10 @@ class Model
 		{
 			$column = $table->get_column_by_inflected_name($pk);
 
-			if ($column->auto_increment || $use_sequence)
-				$this->attributes[$pk] = static::connection()->insert_id($table->sequence);
+			if ($column->auto_increment || $use_sequence) {
+                $connection = static::connection();
+				$this->attributes[$pk] = $column->cast($connection->insert_id($table->sequence), $connection);
+            }
 		}
 
 		$this->invoke_callback('after_create',false);
@@ -863,7 +896,9 @@ class Model
 			$dirty = $this->dirty_attributes();
 			static::table()->update($dirty,$pk);
 			$this->invoke_callback('after_update',false);
-		}
+        } else {
+            $this->reset_was_dirty();
+        }
 
 		return true;
 	}
@@ -1063,14 +1098,24 @@ class Model
 		return true;
 	}
 
+    /**
+     * Returns true if the model has been modified.
+     *
+     * @return boolean true if modified
+     */
+    public function is_dirty()
+    {
+       return empty($this->__dirty) ? false : true;
+    }
+
 	/**
-	 * Returns true if the model has been modified.
+	 * Returns true if the model was modified before saving.
 	 *
 	 * @return boolean true if modified
 	 */
-	public function is_dirty()
+	public function was_dirty()
 	{
-		return empty($this->__dirty) ? false : true;
+		return empty($this->__was_dirty) ? false : true;
 	}
 
 	/**
@@ -1244,9 +1289,17 @@ class Model
 
 		$this->set_attributes_via_mass_assignment($this->find($pk)->attributes, false);
 		$this->reset_dirty();
+        $this->reset_was_dirty();
 
 		return $this;
 	}
+
+    public function reload_relationships()
+    {
+        $this->__relationships = array();
+
+        return $this;
+    }
 
 	public function __clone()
 	{
@@ -1256,12 +1309,23 @@ class Model
 	}
 
 	/**
+	 * Resets the was dirty array.
+	 *
+	 * @see dirty_attributes
+	 */
+	public function reset_was_dirty()
+	{
+        $this->__was_dirty = null;
+	}
+
+	/**
 	 * Resets the dirty array.
 	 *
 	 * @see dirty_attributes
 	 */
 	public function reset_dirty()
 	{
+        $this->__was_dirty = $this->__dirty;
 		$this->__dirty = null;
 	}
 
@@ -1904,3 +1968,4 @@ class Model
         return "{$class_name}/{$this->read_attribute($this->get_primary_key(true))}{$updated_at}";
     }
 
+}
