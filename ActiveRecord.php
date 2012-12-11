@@ -14,6 +14,7 @@ require 'lib/DateTime.php';
 require 'lib/Model.php';
 require 'lib/Errors.php';
 require 'lib/Table.php';
+require 'lib/Column.php';
 require 'lib/ConnectionManager.php';
 require 'lib/Connection.php';
 require 'lib/SQLBuilder.php';
