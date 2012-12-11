@@ -9,7 +9,7 @@ namespace ActiveRecord;
  */
 class HasAndBelongsToMany extends AbstractRelationship
 {
-	public function __construct($options=array())
+	public function __construct($options=array(), $namespace = __NAMESPACE__)
 	{
 		/* options =>
 		 *   join_table - name of the join table if not in lexical order

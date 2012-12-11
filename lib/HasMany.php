@@ -74,7 +74,7 @@ class HasMany extends AbstractRelationship
 	 * @param array $options Options for the association
 	 * @return HasMany
 	 */
-	public function __construct($options=array())
+	public function __construct($options=array(), $namespace = __NAMESPACE__)
 	{
 		parent::__construct($options);
 
@@ -90,7 +90,7 @@ class HasMany extends AbstractRelationship
 			$this->primary_key = is_array($this->options['primary_key']) ? $this->options['primary_key'] : array($this->options['primary_key']);
 
 		if (!$this->class_name)
-			$this->set_inferred_class_name();
+			$this->set_inferred_class_name($namespace);
 	}
 
 	protected function set_keys($model_class_name, $override=false)

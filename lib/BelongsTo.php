@@ -36,11 +36,12 @@ namespace ActiveRecord;
 class BelongsTo extends AbstractRelationship
 {
 	public function __construct($options=array())
+	public function __construct($options=array(), $namespace = __NAMESPACE__)
 	{
 		parent::__construct($options);
 
 		if (!$this->class_name)
-			$this->set_inferred_class_name();
+			$this->set_inferred_class_name($namespace);
 
 		//infer from class_name
 		if (!$this->foreign_key)

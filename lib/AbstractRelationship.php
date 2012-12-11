@@ -60,7 +60,7 @@ abstract class AbstractRelationship implements InterfaceRelationship
 	 * @param array $options Options for the relationship (see {@link valid_association_options})
 	 * @return mixed
 	 */
-	public function __construct($options=array())
+	public function __construct($options=array(), $namespace = __NAMESPACE__)
 	{
 		$this->attribute_name = $options[0];
 		$this->options = $this->merge_association_options($options);
@@ -266,10 +266,10 @@ abstract class AbstractRelationship implements InterfaceRelationship
 	 * @return void
 	 * @see attribute_name
 	 */
-	protected function set_inferred_class_name()
+	protected function set_inferred_class_name($namespace)
 	{
 		$singularize = ($this instanceOf HasMany ? true : false);
-		$this->set_class_name(classify($this->attribute_name, $singularize));
+		$this->set_class_name("$namespace\\" . classify($this->attribute_name, $singularize));
 	}
 
 	protected function set_class_name($class_name)
