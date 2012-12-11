@@ -866,8 +866,8 @@ class Model
             }
 		}
 
-		$this->invoke_callback('after_create',false);
 		$this->__new_record = false;
+		$this->invoke_callback('after_create',false);
 		return true;
 	}
 
@@ -2106,6 +2106,28 @@ class Model
             $batch_options['conditions'][count($batch_options['conditions']) - 1] = $primary_key_offset;
 
             $records = static::all($batch_options);
+        }
+    }
+
+    /*
+     * Set or add a model as a relationship to this model
+     *
+     * @param string $name The name of the relationship to set
+     * @param Model $object The object to set to the named relationship
+     * @param boolean $add If the model should be added to the existing relationship (only for poly relationships)
+     */
+    public function attach_model($name, $object, $add = true) {
+        $rel = static::table()->get_relationship($name);
+        if ($rel->is_poly()) {
+            if ($add && array_key_exists($name, $this->__relationships)) {
+                $this->__relationships[$name][] = $object;
+            }
+            else {
+                $this->__relationships[$name] = [$object];
+            }
+        }
+        else {
+            $this->__relationships[$name] = $object;
         }
     }
 };
