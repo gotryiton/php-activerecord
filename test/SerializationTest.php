@@ -1,10 +1,10 @@
 <?php
-include 'helpers/config.php';
-require '../lib/Serialization.php';
-require '../lib/ArraySerializer.php';
-require '../lib/JsonSerializer.php';
-require '../lib/XmlSerializer.php';
-require '../lib/CsvSerializer.php';
+
+require __DIR__ . '/../lib/Serialization.php';
+require __DIR__ . '/../lib/ArraySerializer.php';
+require __DIR__ . '/../lib/JsonSerializer.php';
+require __DIR__ . '/../lib/XmlSerializer.php';
+require __DIR__ . '/../lib/CsvSerializer.php';
 
 use ActiveRecord\DateTime;
 
