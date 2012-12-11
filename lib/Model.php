@@ -80,6 +80,8 @@ class Model
 	 */
 	public $errors;
 
+    static $auto_load_associations_for_model = array();
+
 	/**
 	 * Contains model values as column_name => value
 	 *
@@ -1622,7 +1624,9 @@ class Model
 		//find by pk
 		elseif (1 === count($args) && 1 == $num_args)
 			$args = $args[0];
-
+        if (!array_key_exists('include', $options) ){
+        	$options['include'] = static::$auto_load_associations_for_model;
+        }
 		// anything left in $args is a find by pk
 		if ($num_args > 0 && !isset($options['conditions']))
 			return static::find_by_pk($args, $options);
