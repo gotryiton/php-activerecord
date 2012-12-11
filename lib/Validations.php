@@ -177,7 +177,8 @@ class Validations
 		foreach ($attrs as $attr)
 		{
 			$options = array_merge($configuration, $attr);
-			$this->record->add_on_blank($options[0], $options['message']);
+            $error_message = isset($attr['message']) ? $attr['message'] : Utils::human_attribute($options[0]) . ' ' . $configuration['message'];
+			$this->record->add_on_blank($options[0], $error_message);
 		}
 	}
 
@@ -252,6 +253,7 @@ class Validations
 		foreach ($attrs as $attr)
 		{
 			$options = array_merge($configuration, $attr);
+            $options['message'] = isset($attr['message']) ? $attr['message'] : Utils::human_attribute($options[0]) . ' ' . $configuration['message'];
 			$attribute = $options[0];
 			$var = $this->model->$attribute;
 
@@ -319,7 +321,7 @@ class Validations
 			if ($this->is_null_with_option($var, $options))
 				continue;
 
-			$not_a_number_message = (isset($options['message']) ? $options['message'] : Errors::$DEFAULT_ERROR_MESSAGES['not_a_number']);
+			$not_a_number_message = (isset($options['message']) ? $options['message'] : Utils::human_attribute($attribute) . ' ' . Errors::$DEFAULT_ERROR_MESSAGES['not_a_number']);
 
 			if (true === $options['only_integer'] && !is_integer($var))
 			{
@@ -343,7 +345,7 @@ class Validations
 			foreach ($numericalityOptions as $option => $check)
 			{
 				$option_value = $options[$option];
-				$message = (isset($options['message']) ? $options['message'] : Errors::$DEFAULT_ERROR_MESSAGES[$option]);
+				$message = (isset($options['message']) ? $options['message'] : Utils::human_attribute($attribute) . ' ' . Errors::$DEFAULT_ERROR_MESSAGES[$option]);
 
 				if ('odd' != $option && 'even' != $option)
 				{
@@ -417,6 +419,7 @@ class Validations
 		foreach ($attrs as $attr)
 		{
 			$options = array_merge($configuration, $attr);
+            $options['message'] = isset($attr['message']) ? $attr['message'] : Utils::human_attribute($options[0]) . ' ' . $configuration['message'];
 			$attribute = $options[0];
 			$var = $this->model->$attribute;
 
@@ -513,9 +516,12 @@ class Validations
 
 					if (isset($options['message']))
 						$message = $options['message'];
-					else
-						$message = $options[$messageOptions[$range_option]];
-					
+					else {
+                        $message = $options[$messageOptions[$range_option]];
+                        if (!isset($attr[$messageOptions[$range_option]])) {
+                            $message = Utils::human_attribute($attribute) . ' ' . $message;
+                        }
+                    }
 
 					$message = str_replace('%d', $option, $message);
 					$attribute_value = $this->model->$attribute;
@@ -580,6 +586,8 @@ class Validations
 				$add_record = $options[0];
 				$fields = array($options[0]);
 			}
+
+            $options['message'] = isset($attr['message']) ? $attr['message'] : Utils::human_attribute($add_record) . ' ' . $configuration['message'];
 
 			$sql = "";
 			$conditions = array("");

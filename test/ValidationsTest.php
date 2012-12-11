@@ -29,6 +29,11 @@ class ValidationsTest extends DatabaseTest
 		BookValidations::$validates_uniqueness_of[0] = 'name';
 	}
 
+    public function tear_down() {
+        BookValidations::$validates_presence_of = [];
+		BookValidations::$validates_uniqueness_of = [];
+    }
+
 	public function test_is_valid_invokes_validations()
 	{
 		$book = new Book;
@@ -90,9 +95,9 @@ class ValidationsTest extends DatabaseTest
 	{
 		$book = new BookValidations();
 		$book->is_valid();
-		$book->errors->add('secondary_author_id', "is invalid");
+		$book->errors->add('secondary_author_id', "The secondary author ID is invalid");
 		
-		$this->assert_equals("Name can't be blank\nSecondary author id is invalid", (string) $book->errors);
+		$this->assert_equals("Name can't be blank\nThe secondary author ID is invalid", (string) $book->errors);
 	}
 
 	public function test_validates_uniqueness_of()
