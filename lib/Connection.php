@@ -316,7 +316,7 @@ abstract class Connection
      * @param boolean retry Retry on MySQL server has gone away exception
 	 * @return mixed A result set object
 	 */
-	public function query($sql, &$values=array())
+	public function query($sql, &$values=array(), $log = true, $retry = true)
 	{
 		$this->last_query = $sql;
 
