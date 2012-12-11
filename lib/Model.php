@@ -1639,14 +1639,19 @@ class Model
 	 * @see find
 	 * @param array $values An array containing values for the pk
 	 * @param array $options An options array
+	 * @param bool  $resort Re-sort the return array based on the order of the value list
 	 * @return Model
 	 * @throws {@link RecordNotFound} if a record could not be found
 	 */
-	public static function find_by_pk($values, $options)
+	public static function find_by_pk($values, $options, $sort = false)
 	{
 		$options['conditions'] = static::pk_conditions($values);
 		$list = static::table()->find($options);
 		$results = count($list);
+
+		if($sort && is_array($values) && count($values) > 1) {
+            $list = self::sort_model_list_by_value_list($list, $values);
+		}
 
 		if ($results != ($expected = count($values)))
 		{
@@ -1969,3 +1974,22 @@ class Model
     }
 
 }
+	/**
+     * Sorts $list of models by the order of their primary key in $values
+     *
+     * @param array $list
+     * @param array $values
+     * @return array
+     */
+    private static function sort_model_list_by_value_list($list, $values) {
+        $return_list = array();
+        $key_list = array();
+        foreach($list as $model)
+        {
+            $pk = $model->read_attribute($model->get_primary_key(true));
+            $key = array_search($pk,$values);
+            $return_list[$key] = $model;
+        }
+        ksort($return_list);
+        return $return_list;
+    }
