@@ -1,7 +1,7 @@
 <?php
 use ActiveRecord\Column;
 
-require_once __DIR__ . '/../lib/adapters/MysqlAdapter.php';
+require_once __DIR__ . '/../lib/ActiveRecord/adapters/MysqlAdapter.php';
 
 class MysqlAdapterTest extends AdapterTest
 {

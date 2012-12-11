@@ -1,6 +1,6 @@
 <?php
 
-require __DIR__ . '/../lib/Expressions.php';
+require __DIR__ . '/../lib/ActiveRecord/Expressions.php';
 
 use ActiveRecord\Expressions;
 use ActiveRecord\ConnectionManager;

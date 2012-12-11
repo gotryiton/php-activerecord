@@ -1,10 +1,10 @@
 <?php
 
-require __DIR__ . '/../lib/Serialization.php';
-require __DIR__ . '/../lib/ArraySerializer.php';
-require __DIR__ . '/../lib/JsonSerializer.php';
-require __DIR__ . '/../lib/XmlSerializer.php';
-require __DIR__ . '/../lib/CsvSerializer.php';
+require __DIR__ . '/../lib/ActiveRecord/Serialization.php';
+require __DIR__ . '/../lib/ActiveRecord/ArraySerializer.php';
+require __DIR__ . '/../lib/ActiveRecord/JsonSerializer.php';
+require __DIR__ . '/../lib/ActiveRecord/XmlSerializer.php';
+require __DIR__ . '/../lib/ActiveRecord/CsvSerializer.php';
 
 use ActiveRecord\DateTime;
 
