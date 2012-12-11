@@ -1685,9 +1685,10 @@ class Model
 	 *
 	 * @param string $sql The raw SELECT query
 	 * @param array $values An array of values for any parameters that needs to be bound
+	 * @param bool $cache_models True to cache the models within the Table::find_by_sql call
 	 * @return array An array of models
 	 */
-	public static function find_by_sql($sql, $values=null)
+	public static function find_by_sql($sql, $values=null, $cache_models = true, $includes = null)
 	{
 		return static::table()->find_by_sql($sql, $values, true, $includes, false);
 	}
