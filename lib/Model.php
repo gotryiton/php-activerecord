@@ -1270,7 +1270,7 @@ class Model
 	 *
 	 * @var array
 	 */
-	static $VALID_OPTIONS = array('conditions', 'limit', 'offset', 'order', 'select', 'joins', 'include', 'readonly', 'group', 'from', 'having');
+	static $VALID_OPTIONS = array('conditions', 'limit', 'offset', 'order', 'select', 'joins', 'include', 'readonly', 'group', 'from', 'having', 'totals');
 
 	/**
 	 * Enables the use of dynamic finders.
@@ -1616,7 +1616,7 @@ class Model
 	 */
 	public static function find_by_sql($sql, $values=null)
 	{
-		return static::table()->find_by_sql($sql, $values, true);
+		return static::table()->find_by_sql($sql, $values, true, $includes, false);
 	}
 
 	/**
@@ -1857,8 +1857,6 @@ class Model
 		}
 		return true;
 	}
-};
-?>
 
     /**
      * Updates the updated_at attribute for the Model

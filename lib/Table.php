@@ -197,6 +197,8 @@ class Table
 
 		if (array_key_exists('having',$options))
 			$sql->having($options['having']);
+		if (array_key_exists('totals',$options))
+			$sql->totals($options['totals']);
 
 		return $sql;
 	}
@@ -206,11 +208,12 @@ class Table
 		$sql = $this->options_to_sql($options);
 		$readonly = (array_key_exists('readonly',$options) && $options['readonly']) ? true : false;
 		$eager_load = array_key_exists('include',$options) ? $options['include'] : null;
+		$totals = array_key_exists('totals',$options) ? $options['totals'] : false;
 
-		return $this->find_by_sql($sql->to_s(),$sql->get_where_values(), $readonly, $eager_load);
+		return $this->find_by_sql($sql->to_s(),$sql->get_where_values(), $readonly, $eager_load, $totals);
 	}
 
-	public function find_by_sql($sql, $values=null, $readonly=false, $includes=null)
+	public function find_by_sql($sql, $values=null, $readonly=false, $includes=null, $totals = false)
 	{
 		$this->last_sql = $sql;
 
@@ -218,6 +221,8 @@ class Table
 		$list = $attrs = array();
 		$sth = $this->conn->query($sql,$this->process_data($values));
 
+		if($totals)
+            $total = (int)$this->conn->query_and_fetch_one("SELECT FOUND_ROWS() as rows");
 		while (($row = $sth->fetch()))
 		{
 			$model = new $this->class->name($row,false,true,false);
@@ -234,7 +239,10 @@ class Table
 		if ($collect_attrs_for_includes && !empty($list))
 			$this->execute_eager_load($list, $attrs, $includes);
 
-		return $list;
+        if($totals)
+            return new Finder(array('list' => $list,'total' => $total));
+		else
+		    return $list;
 	}
 
 	/**

@@ -117,6 +117,12 @@ class SQLBuilder
 		return $this;
 	}
 
+	public function totals($totals)
+	{
+	    if($totals) $this->select = "SQL_CALC_FOUND_ROWS " . $this->select;
+		return $this;
+	}
+
 	public function limit($limit)
 	{
 		$this->limit = intval($limit);
