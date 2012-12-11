@@ -35,7 +35,9 @@ namespace ActiveRecord;
  */
 class BelongsTo extends AbstractRelationship
 {
-	public function __construct($options=array())
+
+    public $touch = false;
+
 	public function __construct($options=array(), $namespace = __NAMESPACE__)
 	{
 		parent::__construct($options);
@@ -46,6 +48,9 @@ class BelongsTo extends AbstractRelationship
 		//infer from class_name
 		if (!$this->foreign_key)
 			$this->foreign_key = array(Inflector::instance()->keyify($this->class_name));
+
+        if(array_key_exists('touch', $options) && $options['touch'])
+            $this->touch = true;
 	}
 
 	public function __get($name)

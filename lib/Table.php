@@ -88,6 +88,7 @@ class Table
 		$this->callback = new CallBack($class_name);
 		$this->callback->register('before_save', function(Model $model) { $model->set_timestamps(); }, array('prepend' => true));
 		$this->callback->register('after_save', function(Model $model) { $model->reset_dirty(); }, array('prepend' => true));
+        $this->callback->register('after_save', function(Model $model) { $model->touch_belongs_to(); }, array('prepend' => true));
 	}
 
 	public function reestablish_connection($close=true)
@@ -315,6 +316,18 @@ class Table
 	{
 		return array_key_exists($name, $this->relationships);
 	}
+
+    /**
+     * Returns all of the BelongsTo relationships
+     *
+     * @return array
+     */
+    public function get_belongs_to_relationships()
+    {
+        return array_filter($this->relationships, function($rel){
+                return $rel instanceof BelongsTo;
+            });
+    }
 
 	public function insert(&$data, $pk=null, $sequence_name=null)
 	{

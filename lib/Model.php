@@ -1859,3 +1859,50 @@ class Model
 	}
 };
 ?>
+
+    /**
+     * Updates the updated_at attribute for the Model
+     *
+     * @return void
+     */
+    public function touch()
+    {
+        $this->set_timestamps();
+        $this->save();
+    }
+
+    /**
+     * Runs touch on every BelongsTo with touch => true 
+     *
+     * @return void
+     */
+    public function touch_belongs_to()
+    {
+        $relationships = static::table()->get_belongs_to_relationships();
+        foreach($relationships as $rel){
+            if($rel->touch){
+                $attribute = $rel->attribute_name;
+                $model = $this->$attribute;
+                if (!is_null($model)) {
+                    $model->readonly(false);
+                    $model->touch();
+                }
+            }
+        }
+    }
+
+    /**
+     * Provides a time stamped cache key for use with auto expiring cache keys
+     *
+     * Format: "MODEL_NAME/PRIMARY_KEY/UPDATED_AT"
+     *  if updated_at does not exist it is left out of the key
+     *
+     * @return string
+     */
+    public function cache_key()
+    {
+        $class_name = strtolower(denamespace(get_called_class()));
+        $updated_at = (array_key_exists('updated_at',$this->attributes)) ? "/{$this->updated_at}" : "";
+        return "{$class_name}/{$this->read_attribute($this->get_primary_key(true))}{$updated_at}";
+    }
+
