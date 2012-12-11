@@ -104,9 +104,9 @@ class AdapterTest extends DatabaseTest
 	public function test_date_time_type()
 	{
 		$columns = $this->conn->columns('authors');
-		$this->assert_equals('datetime',$columns['created_at']->raw_type);
-		$this->assert_equals(Column::DATETIME,$columns['created_at']->type);
-		$this->assert_true($columns['created_at']->length > 0);
+		$this->assert_equals('datetime',$columns['datetime_created_at']->raw_type);
+		$this->assert_equals(Column::DATETIME,$columns['datetime_created_at']->type);
+		$this->assert_true($columns['datetime_created_at']->length > 0);
 	}
 
 	public function test_date()

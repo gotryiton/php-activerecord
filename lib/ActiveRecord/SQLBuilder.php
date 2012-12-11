@@ -117,6 +117,12 @@ class SQLBuilder
 		return $this;
 	}
 
+	public function totals($totals)
+	{
+	    if($totals) $this->select = "SQL_CALC_FOUND_ROWS " . $this->select;
+		return $this;
+	}
+
 	public function limit($limit)
 	{
 		$this->limit = intval($limit);
@@ -380,7 +386,7 @@ class SQLBuilder
 		if ($this->order)
 			$sql .= " ORDER BY $this->order";
 
-		if ($this->limit || $this->offset)
+		if ( isset($this->limit) || isset($this->offset))
 			$sql = $this->connection->limit($sql,$this->offset,$this->limit);
 
 		return $sql;

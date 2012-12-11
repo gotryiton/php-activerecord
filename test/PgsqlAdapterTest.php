@@ -1,8 +1,7 @@
 <?php
 use ActiveRecord\Column;
 
-include 'helpers/config.php';
-require_once __DIR__ . '/../lib/adapters/PgsqlAdapter.php';
+require_once __DIR__ . '/../lib/ActiveRecord/adapters/PgsqlAdapter.php';
 
 class PgsqlAdapterTest extends AdapterTest
 {

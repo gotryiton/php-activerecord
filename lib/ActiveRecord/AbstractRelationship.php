@@ -5,18 +5,6 @@
 namespace ActiveRecord;
 
 /**
- * Interface for a table relationship.
- *
- * @package ActiveRecord
- */
-interface InterfaceRelationship
-{
-	public function __construct($options=array());
-	public function build_association(Model $model, $attributes=array());
-	public function create_association(Model $model, $attributes=array());
-}
-
-/**
  * Abstract class that all relationships must extend from.
  *
  * @package ActiveRecord
@@ -64,7 +52,7 @@ abstract class AbstractRelationship implements InterfaceRelationship
 	 *
 	 * @var array
 	 */
-	static protected $valid_association_options = array('class_name', 'class', 'foreign_key', 'conditions', 'select', 'readonly', 'namespace');
+	static protected $valid_association_options = array('class_name', 'class', 'foreign_key', 'conditions', 'select', 'readonly', 'namespace', 'touch');
 
 	/**
 	 * Constructs a relationship.
@@ -72,7 +60,7 @@ abstract class AbstractRelationship implements InterfaceRelationship
 	 * @param array $options Options for the relationship (see {@link valid_association_options})
 	 * @return mixed
 	 */
-	public function __construct($options=array())
+	public function __construct($options=array(), $namespace = __NAMESPACE__)
 	{
 		$this->attribute_name = $options[0];
 		$this->options = $this->merge_association_options($options);
@@ -126,12 +114,17 @@ abstract class AbstractRelationship implements InterfaceRelationship
 	 * @param $model_values_keys -> key(s)/value(s) to be used in query from model which is including
 	 * @return void
 	 */
-	protected function query_and_attach_related_models_eagerly(Table $table, $models, $attributes, $includes=array(), $query_keys=array(), $model_values_keys=array())
+	protected function query_and_attach_related_models_eagerly(Table $table, $models, $attributes, $includes=array(), $query_keys=array(), $model_values_keys=array(), $related_primary_keys = array())
 	{
 		$values = array();
 		$options = $this->options;
 		$inflector = Inflector::instance();
 		$query_key = $query_keys[0];
+		if(!empty($related_primary_keys))
+		    $related_primary_key = $related_primary_keys[0];
+		else
+		    $related_primary_key = null;
+
 		$model_values_key = $model_values_keys[0];
 
 		foreach ($attributes as $column => $value)
@@ -145,8 +138,22 @@ abstract class AbstractRelationship implements InterfaceRelationship
 		else
 			$options['conditions'] = $conditions;
 
-		if (!empty($includes))
+        $includes_belongs_to = false;
+		if (!empty($includes)){
 			$options['include'] = $includes;
+            if(is_array($includes) && ($key = array_search(strtolower(get_class($models[0])),$includes))){
+                $includes_belongs_to = true;
+                unset($includes[$key]);
+            }
+            else if(strtolower(get_class($models[0])) == $includes){
+                $includes_belongs_to = true;
+                $includes = NULL;
+            }
+            $options['include'] = $includes;
+        }
+        else{
+            $options['include'] = array();
+        }
 
 		if (!empty($options['through'])) {
 			// save old keys as we will be reseting them below for inner join convenience
@@ -278,10 +285,10 @@ abstract class AbstractRelationship implements InterfaceRelationship
 	 * @return void
 	 * @see attribute_name
 	 */
-	protected function set_inferred_class_name()
+	protected function set_inferred_class_name($namespace)
 	{
 		$singularize = ($this instanceOf HasMany ? true : false);
-		$this->set_class_name(classify($this->attribute_name, $singularize));
+		$this->set_class_name("$namespace\\" . classify($this->attribute_name, $singularize));
 	}
 
 	protected function set_class_name($class_name)
@@ -385,301 +392,120 @@ abstract class AbstractRelationship implements InterfaceRelationship
 	 * @param Model $model The model this relationship belongs to
 	 */
 	abstract function load(Model $model);
-};
-
-/**
- * One-to-many relationship.
- *
- * <code>
- * # Table: people
- * # Primary key: id
- * # Foreign key: school_id
- * class Person extends ActiveRecord\Model {}
- *
- * # Table: schools
- * # Primary key: id
- * class School extends ActiveRecord\Model {
- *   static $has_many = array(
- *     array('people')
- *   );
- * });
- * </code>
- *
- * Example using options:
- *
- * <code>
- * class Payment extends ActiveRecord\Model {
- *   static $belongs_to = array(
- *     array('person'),
- *     array('order')
- *   );
- * }
- *
- * class Order extends ActiveRecord\Model {
- *   static $has_many = array(
- *     array('people',
- *           'through'    => 'payments',
- *           'select'     => 'people.*, payments.amount',
- *           'conditions' => 'payments.amount < 200')
- *     );
- * }
- * </code>
- *
- * @package ActiveRecord
- * @see http://www.phpactiverecord.org/guides/associations
- * @see valid_association_options
- */
-class HasMany extends AbstractRelationship
-{
 	/**
-	 * Valid options to use for a {@link HasMany} relationship.
+	 * Creates a map of models grouped by an attribute
 	 *
-	 * <ul>
-	 * <li><b>limit/offset:</b> limit the number of records</li>
-	 * <li><b>primary_key:</b> name of the primary_key of the association (defaults to "id")</li>
-	 * <li><b>group:</b> GROUP BY clause</li>
-	 * <li><b>order:</b> ORDER BY clause</li>
-	 * <li><b>through:</b> name of a model</li>
-	 * </ul>
-	 *
-	 * @var array
+	 * @param string $attribute_name
+	 * @param string $models
+	 * @param string $child_attribute_name
+	 * @param string $child_primary_key
+	 * @param string $related_models
+	 * @return array
 	 */
-	static protected $valid_association_options = array('primary_key', 'order', 'group', 'having', 'limit', 'offset', 'through', 'source');
-
-	protected $primary_key;
-
-	private $has_one = false;
-	private $through;
-
-	/**
-	 * Constructs a {@link HasMany} relationship.
-	 *
-	 * @param array $options Options for the association
-	 * @return HasMany
-	 */
-	public function __construct($options=array())
+	public function map_models($attribute_name,$models,$child_attribute_name = null, $child_primary_key = null, $related_models = array())
 	{
-		parent::__construct($options);
-
-		if (isset($this->options['through']))
-		{
-			$this->through = $this->options['through'];
-
-			if (isset($this->options['source']))
-				$this->set_class_name($this->options['source']);
-		}
-
-		if (!$this->primary_key && isset($this->options['primary_key']))
-			$this->primary_key = is_array($this->options['primary_key']) ? $this->options['primary_key'] : array($this->options['primary_key']);
-
-		if (!$this->class_name)
-			$this->set_inferred_class_name();
+	    $output = array();
+	    if($this->is_poly()){
+	        $map = array();
+    	    foreach($related_models as $model)
+    	    {
+    	        $key = $model->read_attribute($child_primary_key);
+    	        $output[$key] = array();
+    	        $map[$model->read_attribute($child_attribute_name)][] = $key;
+    	    }
+    	    foreach($models as $model)
+    	    {
+                $key = $model->read_attribute($attribute_name);
+                if(array_key_exists($key,$map)){
+        	        $children = $map[$model->read_attribute($attribute_name)];
+        	        if(!empty($children))
+        	        {
+            	        foreach($children as $child_id)
+            	        {
+            	           $output[$child_id][]= $model;
+            	        }
+            	    }
+            	}
+    	    }
+    	}
+    	else{
+    	    foreach($models as $model)
+    	    {
+    	        $key = $model->read_attribute($attribute_name);
+    	        $output[$key][] = $model;
+    	    }
+    	}
+	    return $output;
 	}
 
-	protected function set_keys($model_class_name, $override=false)
+    /**
+     * Matches related models with the parent in an eager load
+     *
+     * @param array  $related_models
+     * @param array  $parents
+     * @param string $query_key
+     * @param string $model_values_key
+     * @param string $related_primary_key
+     * @param bool   $include_belongs_to
+     * @return void
+     */
+	public function match_related_models_to_parents($related_models,$parents,$query_key,$model_values_key,$related_primary_key,$include_belongs_to = false)
 	{
-		//infer from class_name
-		if (!$this->foreign_key || $override)
-			$this->foreign_key = array(Inflector::instance()->keyify($model_class_name));
+	    $class = $this->class_name;
 
-		if (!$this->primary_key || $override)
-			$this->primary_key = Table::load($model_class_name)->pk;
-	}
+	    $inflector = Inflector::instance();
 
-	public function load(Model $model)
-	{
-		$class_name = $this->class_name;
-		$this->set_keys(get_class($model));
+        if($this->is_poly())
+	        $parent_map = $this->map_models($model_values_key,$parents,$query_key,$related_primary_key,$related_models);
+	    else
+	        $parent_map = $this->map_models($model_values_key,$parents);
 
-		// since through relationships depend on other relationships we can't do
-		// this initiailization in the constructor since the other relationship
-		// may not have been created yet and we only want this to run once
-		if (!isset($this->initialized))
-		{
-			if ($this->through)
-			{
-				// verify through is a belongs_to or has_many for access of keys
-				if (!($through_relationship = $this->get_table()->get_relationship($this->through)))
-					throw new HasManyThroughAssociationException("Could not find the association $this->through in model " . get_class($model));
+        $records_by_parent = array();
 
-				if (!($through_relationship instanceof HasMany) && !($through_relationship instanceof BelongsTo))
-					throw new HasManyThroughAssociationException('has_many through can only use a belongs_to or has_many association');
+        foreach($parents as $parent)
+            $records_by_parent[$parent->read_attribute($parent->get_primary_key(true))] = array('parent' => $parent,'related' => array());
 
-				// save old keys as we will be reseting them below for inner join convenience
-				$pk = $this->primary_key;
-				$fk = $this->foreign_key;
+        foreach($related_models as $related)
+        {
+            if($this->is_poly())
+                $map_key = $related_primary_key;
+            else
+                $map_key = $query_key;
 
-				$this->set_keys($this->get_table()->class->getName(), true);
-				
-				$class = $this->class_name;
-				$relation = $class::table()->get_relationship($this->through);
-				$through_table = $relation->get_table();
-				$this->options['joins'] = $this->construct_inner_join_sql($through_table, true);
+            $related_key = $related->read_attribute($map_key);
 
-				// reset keys
-				$this->primary_key = $pk;
-				$this->foreign_key = $fk;
-			}
+            if(array_key_exists($related_key,$parent_map)){
+                foreach($parent_map[$related_key] as $parent_model)
+                    $records_by_parent[$parent_model->read_attribute($parent_model->get_primary_key(true))]['related'][]= $related;
+            }
+        }
 
-			$this->initialized = true;
-		}
+        $used_models = [];
+        foreach($records_by_parent as $record)
+        {
+            $parent = $record['parent'];
+            if(!empty($record['related'])) {
+                foreach($record['related'] as $related) {
+                    $hash = spl_object_hash($related);
 
-		if (!($conditions = $this->create_conditions_from_keys($model, $this->foreign_key, $this->primary_key)))
-			return null;
+                    if (in_array($hash, $used_models)) {
+                        $parent->set_relationship_from_eager_load(clone($related), $this->attribute_name);
+                    }
+                    else {
+                        $parent->set_relationship_from_eager_load($related, $this->attribute_name);
+                        $used_models[] = $hash;
+                    }
 
-		$options = $this->unset_non_finder_options($this->options);
-		$options['conditions'] = $conditions;
-		return $class_name::find($this->poly_relationship ? 'all' : 'first',$options);
-	}
-
-	private function inject_foreign_key_for_new_association(Model $model, &$attributes)
-	{
-		$this->set_keys($model);
-		$primary_key = Inflector::instance()->variablize($this->foreign_key[0]);
-
-		if (!isset($attributes[$primary_key]))
-			$attributes[$primary_key] = $model->id;
-
-		return $attributes;
-	}
-
-	public function build_association(Model $model, $attributes=array())
-	{
-		$attributes = $this->inject_foreign_key_for_new_association($model, $attributes);
-		return parent::build_association($model, $attributes);
-	}
-
-	public function create_association(Model $model, $attributes=array())
-	{
-		$attributes = $this->inject_foreign_key_for_new_association($model, $attributes);
-		return parent::create_association($model, $attributes);
-	}
-
-	public function load_eagerly($models=array(), $attributes=array(), $includes, Table $table)
-	{
-		$this->set_keys($table->class->name);
-		$this->query_and_attach_related_models_eagerly($table,$models,$attributes,$includes,$this->foreign_key, $table->pk);
+                    if($include_belongs_to){
+                        $related->set_relationship_from_eager_load(clone($parent), strtolower(get_class($parent)));
+                    }
+                }
+            }
+            else{
+                $parent->set_relationship_from_eager_load(null, $this->attribute_name);
+            }
+        }
 	}
 };
 
-/**
- * One-to-one relationship.
- *
- * <code>
- * # Table name: states
- * # Primary key: id
- * class State extends ActiveRecord\Model {}
- *
- * # Table name: people
- * # Foreign key: state_id
- * class Person extends ActiveRecord\Model {
- *   static $has_one = array(array('state'));
- * }
- * </code>
- *
- * @package ActiveRecord
- * @see http://www.phpactiverecord.org/guides/associations
- */
-class HasOne extends HasMany
-{
-};
-
-/**
- * @todo implement me
- * @package ActiveRecord
- * @see http://www.phpactiverecord.org/guides/associations
- */
-class HasAndBelongsToMany extends AbstractRelationship
-{
-	public function __construct($options=array())
-	{
-		/* options =>
-		 *   join_table - name of the join table if not in lexical order
-		 *   foreign_key -
-		 *   association_foreign_key - default is {assoc_class}_id
-		 *   uniq - if true duplicate assoc objects will be ignored
-		 *   validate
-		 */
-	}
-
-	public function load(Model $model)
-	{
-
-	}
-};
-
-/**
- * Belongs to relationship.
- *
- * <code>
- * class School extends ActiveRecord\Model {}
- *
- * class Person extends ActiveRecord\Model {
- *   static $belongs_to = array(
- *     array('school')
- *   );
- * }
- * </code>
- *
- * Example using options:
- *
- * <code>
- * class School extends ActiveRecord\Model {}
- *
- * class Person extends ActiveRecord\Model {
- *   static $belongs_to = array(
- *     array('school', 'primary_key' => 'school_id')
- *   );
- * }
- * </code>
- *
- * @package ActiveRecord
- * @see valid_association_options
- * @see http://www.phpactiverecord.org/guides/associations
- */
-class BelongsTo extends AbstractRelationship
-{
-	public function __construct($options=array())
-	{
-		parent::__construct($options);
-
-		if (!$this->class_name)
-			$this->set_inferred_class_name();
-
-		//infer from class_name
-		if (!$this->foreign_key)
-			$this->foreign_key = array(Inflector::instance()->keyify($this->class_name));
-	}
-
-	public function __get($name)
-	{
-		if($name === 'primary_key' && !isset($this->primary_key)) {
-			$this->primary_key = array(Table::load($this->class_name)->pk[0]);
-		}
-
-		return $this->$name;
-	}
-
-	public function load(Model $model)
-	{
-		$keys = array();
-		$inflector = Inflector::instance();
-
-		foreach ($this->foreign_key as $key)
-			$keys[] = $inflector->variablize($key);
-
-		if (!($conditions = $this->create_conditions_from_keys($model, $this->primary_key, $keys)))
-			return null;
-
-		$options = $this->unset_non_finder_options($this->options);
-		$options['conditions'] = $conditions;
-		$class = $this->class_name;
-		return $class::first($options);
-	}
-
-	public function load_eagerly($models=array(), $attributes, $includes, Table $table)
-	{
-		$this->query_and_attach_related_models_eagerly($table,$models,$attributes,$includes, $this->primary_key,$this->foreign_key);
-	}
-};
 ?>

@@ -1,5 +1,4 @@
 <?php
-include 'helpers/config.php';
 
 class BookNumericality extends ActiveRecord\Model
 {
@@ -70,7 +69,7 @@ class ValidatesNumericalityOfTest extends DatabaseTest
 
 	public function test_not_anumber()
 	{
-		$this->assert_invalid(array('blah'), 'is not a number');
+		$this->assert_invalid(array('blah'), 'Numeric test is not a number');
 	}
 
 	public function test_invalid_null()
@@ -80,7 +79,7 @@ class ValidatesNumericalityOfTest extends DatabaseTest
 
 	public function test_invalid_blank()
 	{
-		$this->assert_invalid(array(' ', '  '), 'is not a number');
+		$this->assert_invalid(array(' ', '  '), 'Numeric test is not a number');
 	}
 
 	public function test_invalid_whitespace()
@@ -115,7 +114,7 @@ class ValidatesNumericalityOfTest extends DatabaseTest
 		BookNumericality::$validates_numericality_of[0]['greater_than'] = 5;
 
 		$this->assert_valid(array(6, '7'));
-		$this->assert_invalid(array(5, '5'), 'must be greater than 5');
+		$this->assert_invalid(array(5, '5'), 'Numeric test must be greater than 5');
 	}
 
 	public function test_greater_than_or_equal_to()
@@ -131,7 +130,7 @@ class ValidatesNumericalityOfTest extends DatabaseTest
 		BookNumericality::$validates_numericality_of[0]['less_than'] = 5;
 
 		$this->assert_valid(array(4.9, -1, 0, '-5'));
-		$this->assert_invalid(array(5, '5'), 'must be less than 5');
+		$this->assert_invalid(array(5, '5'), 'Numeric test must be less than 5');
 	}
 
 	public function test_less_than_or_equal_to()
@@ -139,7 +138,7 @@ class ValidatesNumericalityOfTest extends DatabaseTest
 		BookNumericality::$validates_numericality_of[0]['less_than_or_equal_to'] = 5;
 
 		$this->assert_valid(array(5, -1, 0, 4.9, '-5'));
-		$this->assert_invalid(array('8', 5.1), 'must be less than or equal to 5');
+		$this->assert_invalid(array('8', 5.1), 'Numeric test must be less than or equal to 5');
 	}
 
 	public function test_greater_than_less_than_and_even()
@@ -157,7 +156,7 @@ class ValidatesNumericalityOfTest extends DatabaseTest
 		);
 		$book = new BookNumericality(array('numeric_test' => 'NaN'));
 		$book->is_valid();
-		$this->assert_equals(array('Numeric test Hello'),$book->errors->full_messages());
+		$this->assert_equals(array('Hello'),$book->errors->full_messages());
 	}
 };
 

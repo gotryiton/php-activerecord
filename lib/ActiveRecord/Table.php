@@ -88,6 +88,7 @@ class Table
 		$this->callback = new CallBack($class_name);
 		$this->callback->register('before_save', function(Model $model) { $model->set_timestamps(); }, array('prepend' => true));
 		$this->callback->register('after_save', function(Model $model) { $model->reset_dirty(); }, array('prepend' => true));
+        $this->callback->register('after_save', function(Model $model) { $model->touch_belongs_to(); }, array('prepend' => true));
 	}
 
 	public function reestablish_connection($close=true)
@@ -196,6 +197,8 @@ class Table
 
 		if (array_key_exists('having',$options))
 			$sql->having($options['having']);
+		if (array_key_exists('totals',$options))
+			$sql->totals($options['totals']);
 
 		return $sql;
 	}
@@ -205,11 +208,12 @@ class Table
 		$sql = $this->options_to_sql($options);
 		$readonly = (array_key_exists('readonly',$options) && $options['readonly']) ? true : false;
 		$eager_load = array_key_exists('include',$options) ? $options['include'] : null;
+		$totals = array_key_exists('totals',$options) ? $options['totals'] : false;
 
-		return $this->find_by_sql($sql->to_s(),$sql->get_where_values(), $readonly, $eager_load);
+		return $this->find_by_sql($sql->to_s(),$sql->get_where_values(), $readonly, $eager_load, $totals);
 	}
 
-	public function find_by_sql($sql, $values=null, $readonly=false, $includes=null)
+	public function find_by_sql($sql, $values=null, $readonly=false, $includes=null, $totals = false)
 	{
 		$this->last_sql = $sql;
 
@@ -217,6 +221,8 @@ class Table
 		$list = $attrs = array();
 		$sth = $this->conn->query($sql,$this->process_data($values));
 
+		if($totals)
+            $total = (int)$this->conn->query_and_fetch_one("SELECT FOUND_ROWS() as rows");
 		while (($row = $sth->fetch()))
 		{
 			$model = new $this->class->name($row,false,true,false);
@@ -233,7 +239,10 @@ class Table
 		if ($collect_attrs_for_includes && !empty($list))
 			$this->execute_eager_load($list, $attrs, $includes);
 
-		return $list;
+        if($totals)
+            return new Finder(array('list' => $list,'total' => $total));
+		else
+		    return $list;
 	}
 
 	/**
@@ -315,6 +324,18 @@ class Table
 	{
 		return array_key_exists($name, $this->relationships);
 	}
+
+    /**
+     * Returns all of the BelongsTo relationships
+     *
+     * @return array
+     */
+    public function get_belongs_to_relationships()
+    {
+        return array_filter($this->relationships, function($rel){
+                return $rel instanceof BelongsTo;
+            });
+    }
 
 	public function insert(&$data, $pk=null, $sequence_name=null)
 	{
@@ -456,7 +477,6 @@ class Table
 
 	private function set_associations()
 	{
-		require_once 'Relationship.php';
 		$namespace = $this->class->getNamespaceName();
 
 		foreach ($this->class->getStaticProperties() as $name => $definitions)
@@ -472,19 +492,19 @@ class Table
 				switch ($name)
 				{
 					case 'has_many':
-						$relationship = new HasMany($definition);
+						$relationship = new HasMany($definition, $namespace);
 						break;
 
 					case 'has_one':
-						$relationship = new HasOne($definition);
+						$relationship = new HasOne($definition, $namespace);
 						break;
 
 					case 'belongs_to':
-						$relationship = new BelongsTo($definition);
+						$relationship = new BelongsTo($definition, $namespace);
 						break;
 
 					case 'has_and_belongs_to_many':
-						$relationship = new HasAndBelongsToMany($definition);
+						$relationship = new HasAndBelongsToMany($definition, $namespace);
 						break;
 				}
 
