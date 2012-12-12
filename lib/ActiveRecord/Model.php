@@ -80,6 +80,11 @@ class Model
 	 */
 	public $errors;
 
+    /**
+     * Automatically eager load these associations for standard find methods
+     *
+     * @var array
+     **/
     static $auto_load_associations_for_model = array();
 
     /**
@@ -1991,7 +1996,7 @@ class Model
     }
 
     /**
-     * Runs touch on every BelongsTo with touch => true 
+     * Runs touch on every BelongsTo with touch => true
      *
      * @return void
      */
@@ -2526,5 +2531,48 @@ class Model
 
         return $arr;
     }
+
+    /**
+     * Takes an array of model objects and two attributes and
+     * returns single array in the form key_attribute => value_attribute
+     *
+     * @param array $models
+     * @param array $key_attribute
+     * @param array $value_attribute
+     *
+     * @return array
+     */
+    public static function models_to_array(array $models, $key_attribute, $value_attribute) {
+        $ret = array();
+        foreach ($models as $model) {
+            $key = $model->read_attribute($key_attribute);
+            $value = $model->read_attribute($value_attribute);
+            $ret[$key] = $value;
+        }
+
+        return $ret;
+    }
+
+    /**
+     * Checks if a model is available to be used
+     *
+     * @return bool
+     **/
+    public function get_available() {
+        return $this->is_valid() && !$this->is_new_record();
+    }
+
+    /**
+     * Checks if the passed object is a Model and available
+     *
+     * @return bool
+     **/
+    public static function available($object) {
+        if (!is_null($object) && $object->available)
+            return true;
+        else
+            return false;
+    }
+
 };
 ?>
