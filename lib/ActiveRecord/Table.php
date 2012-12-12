@@ -89,6 +89,7 @@ class Table
 		$this->callback->register('before_save', function(Model $model) { $model->set_timestamps(); }, array('prepend' => true));
 		$this->callback->register('after_save', function(Model $model) { $model->reset_dirty(); }, array('prepend' => true));
         $this->callback->register('after_save', function(Model $model) { $model->touch_belongs_to(); }, array('prepend' => true));
+        $this->callback->register('after_destroy', function(Model $model) { $model->touch_belongs_to(); }, array('prepend' => true));
 	}
 
 	public function reestablish_connection($close=true)
