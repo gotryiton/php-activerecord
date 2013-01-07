@@ -873,7 +873,7 @@ class Model
 	{
 		$this->verify_not_readonly('insert');
 
-		if (($validate && !$this->_validate() || !$this->invoke_callback('before_create',false)))
+		if (($validate && !$this->_validate(true) || !$this->invoke_callback('before_create',false)))
 			return false;
 
 		$table = static::table();
@@ -934,7 +934,7 @@ class Model
 	{
 		$this->verify_not_readonly('update');
 
-		if ($validate && !$this->_validate())
+		if ($validate && !$this->_validate(true))
 			return false;
 
 		if ($this->is_dirty())
@@ -1126,14 +1126,21 @@ class Model
 	 *
 	 * @return boolean True if passed validators otherwise false
 	 */
-	private function _validate()
+	private function _validate($run_before_save_and_create = false)
 	{
 		require_once 'Validations.php';
 
 		$validator = new Validations($this);
-		$validation_on = 'validation_on_' . ($this->is_new_record() ? 'create' : 'update');
+        $before_callbacks = ['before_validation'];
+        $after_callbacks = ['after_validation'];
 
-		foreach (array('before_validation', "before_$validation_on") as $callback)
+        if ($run_before_save_and_create) {
+            $validation_on = 'validation_on_' . ($this->is_new_record() ? 'create' : 'update');
+            $before_callbacks[]= "before_$validation_on";
+            $after_callbacks[]= "after_$validation_on";
+        }
+
+		foreach ($before_callbacks as $callback)
 		{
 			if (!$this->invoke_callback($callback,false))
 				return false;
@@ -1143,7 +1150,7 @@ class Model
 		$this->errors = $validator->get_record();
 		$validator->validate();
 
-		foreach (array('after_validation', "after_$validation_on") as $callback)
+		foreach ($after_callbacks as $callback)
 			$this->invoke_callback($callback,false);
 
 		if (!$this->errors->is_empty())
