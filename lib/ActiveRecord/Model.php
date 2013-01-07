@@ -2559,7 +2559,7 @@ class Model
      * @return bool
      **/
     public function get_available() {
-        return $this->is_valid() && !$this->is_new_record();
+        return !$this->is_new_record() && $this->is_valid();
     }
 
     /**
