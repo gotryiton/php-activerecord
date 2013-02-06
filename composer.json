@@ -11,6 +11,9 @@
     "autoload": {
         "psr-0": {
             "ActiveRecord": "lib/"
-        }
+        },
+        "files": [
+          "lib/ActiveRecord/Utils.php"
+        ]
     }
 }
