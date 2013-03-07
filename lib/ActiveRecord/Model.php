@@ -2175,7 +2175,7 @@ class Model
      * @param Model $object The object to set to the named relationship
      * @param boolean $add If the model should be added to the existing relationship (only for poly relationships)
      */
-    public function attach_model($name, $object, $add = true) {
+    public function attach_model($name, &$object, $add = true) {
         $rel = static::table()->get_relationship($name);
         if ($rel->is_poly()) {
             if ($add && array_key_exists($name, $this->__relationships)) {
@@ -2579,6 +2579,10 @@ class Model
             return true;
         else
             return false;
+    }
+
+    public function relationships() {
+        return $this->__relationships;
     }
 
 };
